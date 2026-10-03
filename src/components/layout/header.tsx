@@ -21,15 +21,13 @@ export async function Header() {
   for (const p of products) {
     const key = p.category?.slug ?? "other";
     if (!map.has(key)) map.set(key, { slug: key, name: p.category?.name ?? "سایر", products: [] });
-    map
-      .get(key)!
-      .products.push({
-        slug: p.slug,
-        name: p.name,
-        industryName: p.industryName,
-        icon: p.icon,
-        color: themeColor(p.theme),
-      });
+    map.get(key)!.products.push({
+      slug: p.slug,
+      name: p.name,
+      industryName: p.industryName,
+      icon: p.icon,
+      color: themeColor(p.theme),
+    });
   }
   const categories = [...map.values()];
   const links = menu.map((m) => ({ label: m.label, href: m.href }));
@@ -76,7 +74,7 @@ export async function Header() {
               asChild
               className="shadow-primary/20 hidden h-10 rounded-lg px-4 font-bold shadow-lg md:inline-flex"
             >
-              <Link href="/contact?type=demo">دموی رایگان</Link>
+              <Link href="/contact#demo">دموی رایگان</Link>
             </Button>
             <MobileNav links={links} categories={categories} />
           </div>

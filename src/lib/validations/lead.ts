@@ -29,3 +29,11 @@ export const newsletterSchema = z.object({
   mobile: mobileSchema,
   website: optionalText(0),
 });
+
+export const contactSchema = z.object({
+  name: z.string().trim().min(2, "نام را کامل وارد کنید").max(80),
+  mobile: mobileSchema,
+  subject: z.enum(["sales", "support", "custom", "other"]).default("other"),
+  message: z.string().trim().min(10, "پیام کوتاه است؛ کمی بیشتر توضیح دهید").max(3000),
+  website: optionalText(0),
+});

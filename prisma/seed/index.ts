@@ -17,6 +17,8 @@ import {
 } from "./data/settings";
 import { generalTestimonials } from "./data/testimonials";
 import { seedLandings } from "./landings";
+import { portfolio, serviceFaqs } from "./data/services";
+import { pageContents } from "./content/pages";
 import { SYSTEM_ROLES } from "../../src/lib/permissions";
 import { auditTheme } from "../../src/lib/theme";
 
@@ -150,6 +152,18 @@ async function seedSettingsAndContent() {
       data: generalTestimonials.map((t, i) => ({ ...t, isSample: true, sortOrder: i })),
     });
   }
+  for (const [i, p] of portfolio.entries()) {
+    await db.portfolioItem.upsert({
+      where: { slug: p.slug },
+      update: {},
+      create: { ...p, sortOrder: i },
+    });
+  }
+  if (
+    (await db.faq.count({ where: { productId: null, group: { in: ["custom", "website"] } } })) === 0
+  ) {
+    await db.faq.createMany({ data: serviceFaqs.map((f, i) => ({ ...f, sortOrder: i })) });
+  }
   for (const [key, items] of Object.entries(menus)) {
     const menu = await db.menu.upsert({ where: { key }, update: {}, create: { key } });
     if ((await db.menuItem.count({ where: { menuId: menu.id } })) === 0) {
@@ -159,7 +173,18 @@ async function seedSettingsAndContent() {
     }
   }
   for (const p of pages) {
-    await db.page.upsert({ where: { slug: p.slug }, update: {}, create: p });
+    const c = pageContents[p.slug];
+    const content = c ? { html: c.html } : undefined;
+    const data = {
+      title: c?.title ?? p.title,
+      seoTitle: c?.seoTitle,
+      seoDescription: c?.seoDescription,
+      content,
+    };
+    const existing = await db.page.findUnique({ where: { slug: p.slug } });
+    if (!existing) await db.page.create({ data: { slug: p.slug, ...data } });
+    // صفحه‌ای که هنوز محتوایی ندارد (Seed قبلی) پر می‌شود؛ محتوای ویرایش‌شده دست‌نخورده می‌ماند
+    else if (!existing.content && content) await db.page.update({ where: { slug: p.slug }, data });
   }
   console.log("✔ تنظیمات، منوها، دپارتمان‌ها، قالب‌های پیامک و FAQ عمومی");
 }

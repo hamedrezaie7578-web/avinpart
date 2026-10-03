@@ -65,7 +65,7 @@ export async function PricingSection({
               ctaHref={
                 productSlug
                   ? `/checkout?product=${productSlug}&plan=${p.code}`
-                  : `/pricing#choose-${p.code.toLowerCase()}`
+                  : `/checkout?plan=${p.code}`
               }
               ctaLabel={productSlug ? "خرید این پلن" : "انتخاب پلن"}
             />

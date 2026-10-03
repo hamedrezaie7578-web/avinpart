@@ -79,7 +79,7 @@ export function MobileNav({ links, categories }: { links: NavLink[]; categories:
           </ul>
           <div className="mt-6 grid gap-2">
             <Button asChild className="h-11 rounded-xl font-bold">
-              <Link href="/contact?type=demo">دریافت دموی رایگان</Link>
+              <Link href="/contact#demo">دریافت دموی رایگان</Link>
             </Button>
             <Button asChild variant="outline" className="h-11 rounded-xl font-bold">
               <Link href="/login">ورود / ثبت‌نام</Link>

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
-import { demoRequestSchema, newsletterSchema } from "@/lib/validations/lead";
+import { contactSchema, demoRequestSchema, newsletterSchema } from "@/lib/validations/lead";
 
 export type ActionResult =
   | { ok: true; message: string }
@@ -73,4 +73,43 @@ export async function subscribeNewsletter(input: unknown): Promise<ActionResult>
       data: { type: "NEWSLETTER", mobile: parsed.data.mobile, source: "footer" },
     });
   return { ok: true, message: "عضویت شما در خبرنامه ثبت شد. ممنون!" };
+}
+
+const SUBJECTS: Record<string, string> = {
+  sales: "مشاوره‌ی خرید",
+  support: "پشتیبانی",
+  custom: "سفارش اختصاصی",
+  other: "سایر",
+};
+
+export async function submitContact(input: unknown): Promise<ActionResult> {
+  const parsed = contactSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "لطفاً خطاهای فرم را برطرف کنید.",
+      fieldErrors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]>,
+    };
+  }
+  if (parsed.data.website) return { ok: true, message: "پیام شما ارسال شد." };
+  const ip = await getClientIp();
+  if (!(await rateLimit(`contact:${ip}`, 5, 600)).ok)
+    return { ok: false, message: "تعداد پیام‌ها زیاد است؛ لطفاً کمی بعد تلاش کنید." };
+  const { name, mobile, subject, message } = parsed.data;
+  await db.lead.create({
+    data: {
+      type: "CONTACT",
+      name,
+      mobile,
+      message: `[${SUBJECTS[subject]}] ${message}`,
+      source: "/contact",
+    },
+  });
+  await db.adminNotification.create({
+    data: { type: "lead", title: `پیام تماس جدید: ${name}`, href: "/admin/forms" },
+  });
+  return {
+    ok: true,
+    message: "پیام شما دریافت شد. همکاران ما در اولین فرصت (معمولاً همان روز کاری) پاسخ می‌دهند.",
+  };
 }
