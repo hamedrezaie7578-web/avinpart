@@ -1,0 +1,221 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ───────────── توکن‌های پایه‌ی Design System ───────────── */
+:root {
+  --radius: 0.875rem;
+
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #526077;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #6366f1;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --accent: #eef2ff;
+  --accent-foreground: #3730a3;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: #15803d;
+  --warning: #b45309;
+
+  /* تم محصول — مقدار پیش‌فرض: برند AvinApps. در لندینگ‌ها با style inline بازنویسی می‌شود. */
+  --brand: #4f46e5;
+  --brand-fg: #ffffff;
+  --brand-2: #7c3aed;
+  --brand-2-fg: #ffffff;
+  --brand-surface: #f5f3ff;
+  --brand-from: #1e40af;
+  --brand-to: #6d28d9;
+  --brand-hero-fg: #ffffff;
+  --brand-dark: #8b85f0;
+  --brand-dark-fg: #0b0b0f;
+  --brand-surface-dark: #161731;
+}
+
+.dark {
+  --background: #0b0d14;
+  --foreground: #e6e8ef;
+  --card: #121520;
+  --card-foreground: #e6e8ef;
+  --popover: #121520;
+  --popover-foreground: #e6e8ef;
+  --muted: #1a1e2b;
+  --muted-foreground: #9aa3b8;
+  --border: #252a3a;
+  --input: #252a3a;
+  --ring: #818cf8;
+  --primary: #818cf8;
+  --primary-foreground: #0b0b0f;
+  --secondary: #1a1e2b;
+  --secondary-foreground: #e6e8ef;
+  --accent: #1e2140;
+  --accent-foreground: #c7d2fe;
+  --destructive: #f87171;
+  --destructive-foreground: #0b0b0f;
+  --success: #4ade80;
+  --warning: #fbbf24;
+}
+
+/* تم محصول: ProductThemeScope مقادیر --p-* را inline می‌گذارد و اینجا بر اساس حالت روشن/تاریک انتخاب می‌شوند */
+[data-product-theme] {
+  --brand: var(--p-brand);
+  --brand-fg: var(--p-brand-fg);
+  --brand-surface: var(--p-surface);
+}
+.dark [data-product-theme] {
+  --brand: var(--p-brand-dark);
+  --brand-fg: var(--p-brand-dark-fg);
+  --brand-surface: var(--p-surface-dark);
+}
+.dark {
+  --brand: var(--brand-dark);
+  --brand-fg: var(--brand-dark-fg);
+  --brand-surface: var(--brand-surface-dark);
+}
+
+@theme inline {
+  --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, Tahoma, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-2: var(--brand-2);
+  --color-brand-2-fg: var(--brand-2-fg);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-from: var(--brand-from);
+  --color-brand-to: var(--brand-to);
+  --color-brand-hero-fg: var(--brand-hero-fg);
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "ss01";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--brand) 25%, transparent);
+  }
+  /* اعداد لاتین داخل متن فارسی (کدها، شماره‌ها) */
+  .ltr {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-x {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 80rem;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .container-x {
+      padding-inline: 1.5rem;
+    }
+  }
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+  }
+  .text-brand-gradient {
+    background-image: linear-gradient(90deg, var(--brand), var(--brand-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .glass {
+    background: color-mix(in oklab, var(--card) 70%, transparent);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  }
+  .glass-on-dark {
+    background: rgb(255 255 255 / 0.08);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    border: 1px solid rgb(255 255 255 / 0.16);
+  }
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+}

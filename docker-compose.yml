@@ -1,0 +1,48 @@
+# استقرار کامل: docker compose up -d --build
+# فقط دیتابیس برای توسعه‌ی محلی: docker compose up -d db
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-avin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-avin}
+      POSTGRES_DB: ${POSTGRES_DB:-avinapps}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-avin}"]
+      interval: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-avin}:${POSTGRES_PASSWORD:-avin}@db:5432/${POSTGRES_DB:-avinapps}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage:/app/storage
+    profiles: ["full"]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    profiles: ["full"]
+
+volumes:
+  pgdata:
+  storage:

@@ -1,0 +1,787 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────── کاربران، نقش‌ها، احراز هویت ─────────────
+enum UserType {
+  CUSTOMER
+  ADMIN
+}
+
+model User {
+  id                   String          @id @default(cuid())
+  type                 UserType        @default(CUSTOMER)
+  mobile               String          @unique
+  email                String?         @unique
+  name                 String?
+  passwordHash         String? // فقط ادمین‌ها (argon2id)
+  totpSecret           String? // رمزنگاری‌شده (AES-GCM)
+  totpEnabled          Boolean         @default(false)
+  roleId               String?
+  role                 Role?           @relation(fields: [roleId], references: [id])
+  isBlocked            Boolean         @default(false)
+  businessName         String?
+  businessType         String?
+  nationalId           String?
+  economicCode         String?
+  city                 String?
+  address              String?
+  lastLoginAt          DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  orders               Order[]
+  licenses             License[]
+  tickets              Ticket[]        @relation("TicketOwner")
+  ticketReplies        TicketMessage[]
+  customOrders         CustomOrder[]   @relation("CustomOrderOwner")
+  assignedCustomOrders CustomOrder[]   @relation("CustomOrderAssignee")
+  posts                Post[]
+  auditLogs            AuditLog[]
+  cart                 Cart?
+
+  @@index([type])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique // مدیر کل، فروش، پشتیبانی، محتوا
+  description String?
+  isSystem    Boolean  @default(false) // مدیر کل قابل حذف نیست
+  permissions String[] // مثل "products.read", "products.write", "orders.refund"
+  users       User[]
+}
+
+model OtpCode {
+  id        String    @id @default(cuid())
+  mobile    String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  ip        String?
+  createdAt DateTime  @default(now())
+
+  @@index([mobile, createdAt])
+}
+
+model RateLimit {
+  key     String   @id // مثل "otp:09121234567" یا "login:ip"
+  count   Int
+  resetAt DateTime
+}
+
+// ───────────── صنف‌ها و محصولات ─────────────
+model IndustryCategory {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  sortOrder Int       @default(0)
+  products  Product[]
+}
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Product {
+  id             String              @id @default(cuid())
+  slug           String              @unique // avingold
+  name           String // AvinGold
+  industryName   String // طلا و جواهر فروشی
+  shortDesc      String
+  icon           String // نام آیکون lucide
+  logoId         String?
+  logo           Media?              @relation("ProductLogo", fields: [logoId], references: [id])
+  categoryId     String?
+  category       IndustryCategory?   @relation(fields: [categoryId], references: [id])
+  theme          Json // { primary, primaryFg, secondary, accent, background, surface, gradientFrom, gradientTo }
+  status         PublishStatus       @default(DRAFT)
+  isFeatured     Boolean             @default(false)
+  sortOrder      Int                 @default(0)
+  ratingValue    Float? // برای aggregateRating
+  ratingCount    Int?
+  // SEO
+  seoTitle       String?
+  seoDescription String?
+  focusKeyword   String?
+  keywords       String[]
+  ogImageId      String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  sections       LandingSection[]
+  features       ProductFeature[]
+  screenshots    ProductScreenshot[]
+  faqs           Faq[]
+  testimonials   Testimonial[]
+  planPrices     ProductPlanPrice[]
+  releases       Release[]
+  licenses       License[]
+  orderItems     OrderItem[]
+  posts          Post[]              @relation("PostProducts")
+  related        Product[]           @relation("RelatedProducts")
+  relatedOf      Product[]           @relation("RelatedProducts")
+}
+
+enum SectionType {
+  HERO
+  PAIN_POINTS
+  FEATURES
+  MODULES
+  PLATFORMS
+  GALLERY
+  PRICING
+  STATS
+  TESTIMONIALS
+  VIDEO
+  FAQ
+  CTA
+  RELATED
+  RICH_TEXT
+}
+
+model LandingSection {
+  id        String      @id @default(cuid())
+  productId String? // null = صفحه‌ی اصلی یا صفحه‌ی ثابت
+  product   Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  pageId    String?
+  page      Page?       @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type      SectionType
+  enabled   Boolean     @default(true)
+  sortOrder Int
+  data      Json // محتوای سکشن؛ با Zod برای هر type اعتبارسنجی می‌شود
+
+  @@index([productId, sortOrder])
+  @@index([pageId, sortOrder])
+}
+
+model ProductFeature {
+  id          String  @id @default(cuid())
+  productId   String
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  icon        String
+  isKey       Boolean @default(true) // امکان کلیدی صنفی یا ماژول عمومی
+  sortOrder   Int     @default(0)
+}
+
+model ProductScreenshot {
+  id        String    @id @default(cuid())
+  productId String
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     Media     @relation(fields: [mediaId], references: [id])
+  caption   String?
+  platform  Platform?
+  sortOrder Int       @default(0)
+}
+
+// ───────────── پلن‌ها و قیمت‌گذاری ─────────────
+enum Platform {
+  WINDOWS
+  ANDROID
+  WEB
+  IOS
+}
+
+model Plan {
+  id             String             @id @default(cuid())
+  code           String             @unique // OFFLINE, ONLINE, ONLINE_SITE
+  name           String
+  tagline        String
+  price          Int // تومان
+  compareAtPrice Int? // قیمت خط‌خورده
+  isPopular      Boolean            @default(false)
+  platforms      Platform[]
+  durationDays   Int? // null = دائمی؛ برای آنلاین مثلاً ۳۶۵ (تمدید)
+  renewalPrice   Int?
+  maxDevices     Int                @default(1)
+  sortOrder      Int                @default(0)
+  isActive       Boolean            @default(true)
+  features       PlanFeatureValue[]
+  productPrices  ProductPlanPrice[]
+  discounts      TimedDiscount[]
+  orderItems     OrderItem[]
+  licenses       License[]
+}
+
+model ComparisonFeature {
+  id        String             @id @default(cuid())
+  group     String // «نسخه‌ها»، «همگام‌سازی»، «وب‌سایت» …
+  title     String
+  tooltip   String?
+  sortOrder Int                @default(0)
+  values    PlanFeatureValue[]
+}
+
+model PlanFeatureValue {
+  planId    String
+  plan      Plan              @relation(fields: [planId], references: [id], onDelete: Cascade)
+  featureId String
+  feature   ComparisonFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  included  Boolean
+  note      String? // مثلاً «تا ۵ کاربر»
+
+  @@id([planId, featureId])
+}
+
+model ProductPlanPrice {
+  productId      String
+  product        Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  planId         String
+  plan           Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  price          Int?
+  compareAtPrice Int?
+  isAvailable    Boolean @default(true)
+
+  @@id([productId, planId])
+}
+
+model TimedDiscount {
+  id        String   @id @default(cuid())
+  planId    String?
+  plan      Plan?    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  productId String?
+  percent   Int?
+  amount    Int?
+  label     String? // «جشنواره‌ی نوروز»
+  startsAt  DateTime
+  endsAt    DateTime
+  isActive  Boolean  @default(true)
+}
+
+model Coupon {
+  id           String       @id @default(cuid())
+  code         String       @unique
+  type         DiscountType
+  value        Int
+  maxUses      Int?
+  usedCount    Int          @default(0)
+  perUserLimit Int?         @default(1)
+  minAmount    Int?
+  productIds   String[]
+  planIds      String[]
+  startsAt     DateTime?
+  endsAt       DateTime?
+  isActive     Boolean      @default(true)
+  orders       Order[]
+}
+
+enum DiscountType {
+  PERCENT
+  AMOUNT
+}
+
+// ───────────── سبد، سفارش، پرداخت، فاکتور ─────────────
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?    @unique
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestId   String?    @unique // کوکی برای کاربر مهمان
+  items     CartItem[]
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String
+  cart      Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  planId    String
+
+  @@unique([cartId, productId, planId])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+enum OrderKind {
+  PURCHASE
+  UPGRADE
+  RENEWAL
+}
+
+model Order {
+  id                   String      @id @default(cuid())
+  number               Int         @unique @default(autoincrement()) // شماره‌ی فاکتور
+  userId               String
+  user                 User        @relation(fields: [userId], references: [id])
+  kind                 OrderKind   @default(PURCHASE)
+  status               OrderStatus @default(PENDING)
+  subtotal             Int
+  discount             Int         @default(0)
+  tax                  Int         @default(0) // ارزش افزوده (درصد از تنظیمات)
+  total                Int
+  couponId             String?
+  coupon               Coupon?     @relation(fields: [couponId], references: [id])
+  upgradeFromLicenseId String?
+  note                 String?
+  paidAt               DateTime?
+  createdAt            DateTime    @default(now())
+  items                OrderItem[]
+  payments             Payment[]
+
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  planId    String
+  plan      Plan     @relation(fields: [planId], references: [id])
+  unitPrice Int
+  title     String // اسنپ‌شات نام در لحظه‌ی خرید
+  license   License?
+}
+
+enum PaymentStatus {
+  INITIATED
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  orderId    String
+  order      Order         @relation(fields: [orderId], references: [id])
+  gateway    String // zarinpal, idpay, mock
+  amount     Int
+  status     PaymentStatus @default(INITIATED)
+  authority  String?       @unique
+  refId      String?
+  cardPan    String?
+  raw        Json?
+  createdAt  DateTime      @default(now())
+  verifiedAt DateTime?
+}
+
+// ───────────── لایسنس و نسخه‌ها ─────────────
+enum LicenseStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+  EXPIRED
+}
+
+model License {
+  id          String          @id @default(cuid())
+  key         String          @unique
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  productId   String
+  product     Product         @relation(fields: [productId], references: [id])
+  planId      String
+  plan        Plan            @relation(fields: [planId], references: [id])
+  orderItemId String?         @unique
+  orderItem   OrderItem?      @relation(fields: [orderItemId], references: [id])
+  status      LicenseStatus   @default(ACTIVE)
+  maxDevices  Int
+  expiresAt   DateTime?
+  webUrl      String? // لینک ورود نسخه‌ی وب
+  note        String?
+  createdAt   DateTime        @default(now())
+  devices     LicenseDevice[]
+  logs        LicenseLog[]
+}
+
+model LicenseDevice {
+  id          String   @id @default(cuid())
+  licenseId   String
+  license     License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  hardwareId  String // هش قفل سخت‌افزاری
+  platform    Platform
+  deviceName  String?
+  activatedAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  isActive    Boolean  @default(true)
+
+  @@unique([licenseId, hardwareId])
+}
+
+model LicenseLog {
+  id         String   @id @default(cuid())
+  licenseId  String
+  license    License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  action     String // verify, activate, deactivate, revoke, renew
+  result     String // ok, denied:max_devices, …
+  ip         String?
+  hardwareId String?
+  createdAt  DateTime @default(now())
+
+  @@index([licenseId, createdAt])
+}
+
+model Release {
+  id          String   @id @default(cuid())
+  productId   String? // null = نسخه‌ی عمومی (همه‌ی محصولات)
+  product     Product? @relation(fields: [productId], references: [id])
+  platform    Platform
+  version     String
+  changelog   String // markdown
+  fileId      String?
+  file        Media?   @relation(fields: [fileId], references: [id])
+  isMandatory Boolean  @default(false)
+  isDemo      Boolean  @default(false) // نسخه‌ی دموی رایگان برای همه
+  isPublished Boolean  @default(true)
+  downloads   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@unique([productId, platform, version])
+}
+
+// ───────────── سفارش نرم‌افزار اختصاصی و طراحی سایت ─────────────
+enum CustomOrderStatus {
+  NEW
+  REVIEWING
+  QUOTE_SENT
+  IN_DEVELOPMENT
+  DELIVERED
+  CANCELED
+}
+
+enum CustomOrderType {
+  CUSTOM_SOFTWARE
+  WEBSITE
+}
+
+model CustomOrder {
+  id            String             @id @default(cuid())
+  trackingCode  String             @unique // مثل CS-140507-4821
+  type          CustomOrderType    @default(CUSTOM_SOFTWARE)
+  userId        String?
+  user          User?              @relation("CustomOrderOwner", fields: [userId], references: [id])
+  contactName   String
+  mobile        String
+  email         String?
+  businessName  String?
+  businessField String?
+  projectTypes  String[] // ERP, CRM, android, web-app, integration
+  platforms     Platform[]
+  features      String[] // چک‌لیست
+  description   String
+  budgetRange   String
+  timeline      String
+  status        CustomOrderStatus  @default(NEW)
+  boardOrder    Int                @default(0) // ترتیب در ستون کانبان
+  assigneeId    String?
+  assignee      User?              @relation("CustomOrderAssignee", fields: [assigneeId], references: [id])
+  quoteAmount   Int?
+  quoteFileId   String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  attachments   Media[]            @relation("CustomOrderFiles")
+  notes         CustomOrderNote[]
+  events        CustomOrderEvent[] // تایم‌لاین قابل مشاهده برای مشتری
+}
+
+model CustomOrderNote {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     CustomOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  authorId  String
+  body      String
+  createdAt DateTime    @default(now())
+}
+
+model CustomOrderEvent {
+  id        String            @id @default(cuid())
+  orderId   String
+  order     CustomOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    CustomOrderStatus
+  message   String?
+  createdAt DateTime          @default(now())
+}
+
+model PortfolioItem {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  title       String
+  client      String?
+  summary     String
+  body        Json? // Tiptap
+  coverId     String?
+  cover       Media?          @relation("PortfolioCover", fields: [coverId], references: [id])
+  tags        String[]
+  type        CustomOrderType
+  isPublished Boolean         @default(true)
+  sortOrder   Int             @default(0)
+}
+
+// ───────────── پشتیبانی ─────────────
+enum TicketStatus {
+  OPEN
+  ANSWERED
+  CUSTOMER_REPLY
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Department {
+  id      String   @id @default(cuid())
+  name    String
+  tickets Ticket[]
+}
+
+model Ticket {
+  id           String          @id @default(cuid())
+  number       Int             @unique @default(autoincrement())
+  userId       String
+  user         User            @relation("TicketOwner", fields: [userId], references: [id])
+  departmentId String
+  department   Department      @relation(fields: [departmentId], references: [id])
+  subject      String
+  status       TicketStatus    @default(OPEN)
+  priority     TicketPriority  @default(NORMAL)
+  licenseId    String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  messages     TicketMessage[]
+}
+
+model TicketMessage {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  body        String
+  isStaff     Boolean  @default(false)
+  attachments Media[]  @relation("TicketFiles")
+  createdAt   DateTime @default(now())
+}
+
+model CannedReply {
+  id    String @id @default(cuid())
+  title String
+  body  String
+}
+
+// ───────────── محتوا: وبلاگ، صفحات، منوها، FAQ، نظرات ─────────────
+model Post {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  title          String
+  excerpt        String
+  content        Json // Tiptap JSON
+  contentHtml    String // رندر‌شده برای سرعت
+  readingMinutes Int
+  coverId        String?
+  cover          Media?        @relation("PostCover", fields: [coverId], references: [id])
+  authorId       String
+  author         User          @relation(fields: [authorId], references: [id])
+  categoryId     String?
+  category       PostCategory? @relation(fields: [categoryId], references: [id])
+  tags           Tag[]
+  products       Product[]     @relation("PostProducts") // لینک‌سازی داخلی
+  status         PublishStatus @default(DRAFT)
+  publishAt      DateTime? // انتشار زمان‌بندی‌شده
+  seoTitle       String?
+  seoDescription String?
+  focusKeyword   String?
+  seoScore       Int?
+  views          Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status, publishAt])
+}
+
+model PostCategory {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  posts       Post[]
+}
+
+model Tag {
+  id    String @id @default(cuid())
+  name  String
+  slug  String @unique
+  posts Post[]
+}
+
+model Page {
+  id             String           @id @default(cuid())
+  slug           String           @unique // home, about, terms, privacy, refund-policy, website-design, custom-software
+  title          String
+  content        Json?
+  sections       LandingSection[]
+  seoTitle       String?
+  seoDescription String?
+  updatedAt      DateTime         @updatedAt
+}
+
+model Faq {
+  id        String   @id @default(cuid())
+  productId String? // null = عمومی
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  group     String? // general, payment, license, custom
+  question  String
+  answer    String
+  sortOrder Int      @default(0)
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name        String
+  role        String // «مدیر طلافروشی … — تبریز»
+  body        String
+  rating      Int      @default(5)
+  avatarId    String?
+  isSample    Boolean  @default(true) // برچسب «نمونه»
+  isPublished Boolean  @default(true)
+  sortOrder   Int      @default(0)
+}
+
+model Menu {
+  id    String     @id @default(cuid())
+  key   String     @unique // header, footer-1, footer-2, mega
+  items MenuItem[]
+}
+
+model MenuItem {
+  id        String     @id @default(cuid())
+  menuId    String
+  menu      Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    MenuItem?  @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  MenuItem[] @relation("MenuTree")
+  label     String
+  href      String
+  icon      String?
+  sortOrder Int        @default(0)
+}
+
+// ───────────── رسانه ─────────────
+model Media {
+  id              String              @id @default(cuid())
+  path            String // مسیر داخل driver
+  url             String
+  mime            String
+  size            Int
+  width           Int?
+  height          Int?
+  alt             String?
+  isPrivate       Boolean             @default(false) // فایل‌های نصب و پیوست‌ها
+  uploadedById    String?
+  createdAt       DateTime            @default(now())
+  // معکوس روابط
+  productLogos    Product[]           @relation("ProductLogo")
+  screenshots     ProductScreenshot[]
+  releases        Release[]
+  postCovers      Post[]              @relation("PostCover")
+  portfolioCovers PortfolioItem[]     @relation("PortfolioCover")
+  customOrders    CustomOrder[]       @relation("CustomOrderFiles")
+  ticketMessages  TicketMessage[]     @relation("TicketFiles")
+}
+
+// ───────────── فرم‌ها و اعلان‌ها ─────────────
+enum LeadType {
+  DEMO
+  CONTACT
+  CONSULT
+  NEWSLETTER
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  type      LeadType
+  name      String?
+  mobile    String?
+  email     String?
+  productId String?
+  message   String?
+  source    String? // URL صفحه + utm
+  isHandled Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model NotificationTemplate {
+  id                String  @id @default(cuid())
+  key               String  @unique // otp, order_paid, ticket_answered, custom_order_status …
+  channel           String // sms | email
+  subject           String?
+  body              String // با متغیرهای {{name}}
+  kavenegarTemplate String? // برای Verify Lookup
+  isActive          Boolean @default(true)
+}
+
+model AdminNotification {
+  id        String    @id @default(cuid())
+  type      String
+  title     String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model SmsLog {
+  id        String   @id @default(cuid())
+  mobile    String
+  template  String?
+  status    String
+  provider  String
+  createdAt DateTime @default(now())
+}
+
+// ───────────── تنظیمات، سئو، لاگ ─────────────
+model Setting {
+  key       String   @id // site.name, contact.phone, payment.zarinpal.merchant, seo.gsc …
+  value     Json
+  isSecret  Boolean  @default(false) // مقادیر حساس رمزنگاری‌شده
+  updatedAt DateTime @updatedAt
+}
+
+model Redirect {
+  id   String @id @default(cuid())
+  from String @unique
+  to   String
+  code Int    @default(301)
+  hits Int    @default(0)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String // product.update, order.refund …
+  entity    String
+  entityId  String?
+  diff      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}
+
+model Backup {
+  id        String   @id @default(cuid())
+  file      String
+  size      Int
+  createdAt DateTime @default(now())
+}
