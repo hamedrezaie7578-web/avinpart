@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { landings } from "../../prisma/seed/content/landings";
-import type { LandingContent } from "../../prisma/seed/content/types";
 import { products } from "../../prisma/seed/data/products";
 import { isIconName } from "@/components/design-system/icon";
 import { sectionSchemas } from "@/lib/sections";
