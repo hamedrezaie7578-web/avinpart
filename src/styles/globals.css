@@ -219,3 +219,103 @@
     background-size: 44px 44px;
   }
 }
+
+/* ───────────── تایپوگرافی محتوای بلند (مقالات و متن‌های سئو) ───────────── */
+@layer components {
+  .prose-fa {
+    font-size: 1.0625rem;
+    line-height: 2.1;
+    color: var(--foreground);
+  }
+  .prose-fa > * + *,
+  .prose-fa > div > * + * {
+    margin-top: 1.25em;
+  }
+  .prose-fa h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.6;
+    margin-top: 2em;
+  }
+  .prose-fa h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.7;
+    margin-top: 1.6em;
+  }
+  .prose-fa h2:first-child,
+  .prose-fa > div > h2:first-child {
+    margin-top: 0;
+  }
+  .prose-fa p {
+    color: color-mix(in oklab, var(--foreground) 85%, transparent);
+  }
+  .prose-fa a {
+    color: var(--brand);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .prose-fa strong {
+    font-weight: 800;
+    color: var(--foreground);
+  }
+  .prose-fa ul,
+  .prose-fa ol {
+    padding-inline-start: 1.5em;
+  }
+  .prose-fa ul {
+    list-style: disc;
+  }
+  .prose-fa ol {
+    list-style: decimal;
+  }
+  .prose-fa li {
+    margin-top: 0.5em;
+  }
+  .prose-fa li::marker {
+    color: var(--brand);
+  }
+  .prose-fa blockquote {
+    border-inline-start: 4px solid var(--brand);
+    background: var(--brand-surface);
+    padding: 1em 1.25em;
+    border-radius: 0.75rem;
+  }
+  .prose-fa table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+    display: block;
+    overflow-x: auto;
+  }
+  .prose-fa th,
+  .prose-fa td {
+    border: 1px solid var(--border);
+    padding: 0.6em 0.9em;
+    text-align: start;
+  }
+  .prose-fa th {
+    background: var(--muted);
+    font-weight: 700;
+  }
+  .prose-fa img {
+    border-radius: 1rem;
+  }
+  .prose-fa code {
+    background: var(--muted);
+    padding: 0.15em 0.4em;
+    border-radius: 0.35rem;
+    font-size: 0.9em;
+  }
+}
+
+/* وقتی نوار CTA چسبان موبایل هست، دکمه‌ی شناور تماس بالاتر می‌رود (خارج از layer تا بر utilityها غلبه کند) */
+@media (max-width: 1023px) {
+  body:has([data-sticky-cta]) [data-floating-contact] {
+    bottom: 5.75rem;
+  }
+  body:has([data-sticky-cta]) footer {
+    padding-bottom: 4.5rem;
+  }
+}

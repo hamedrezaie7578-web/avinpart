@@ -15,6 +15,8 @@ import {
   pages,
   settings,
 } from "./data/settings";
+import { generalTestimonials } from "./data/testimonials";
+import { seedLandings } from "./landings";
 import { SYSTEM_ROLES } from "../../src/lib/permissions";
 import { auditTheme } from "../../src/lib/theme";
 
@@ -143,6 +145,11 @@ async function seedSettingsAndContent() {
   if ((await db.faq.count({ where: { productId: null } })) === 0) {
     await db.faq.createMany({ data: generalFaqs.map((f, i) => ({ ...f, sortOrder: i })) });
   }
+  if ((await db.testimonial.count({ where: { productId: null } })) === 0) {
+    await db.testimonial.createMany({
+      data: generalTestimonials.map((t, i) => ({ ...t, isSample: true, sortOrder: i })),
+    });
+  }
   for (const [key, items] of Object.entries(menus)) {
     const menu = await db.menu.upsert({ where: { key }, update: {}, create: { key } });
     if ((await db.menuItem.count({ where: { menuId: menu.id } })) === 0) {
@@ -162,6 +169,7 @@ async function main() {
   await seedCatalog();
   await seedPlans();
   await seedSettingsAndContent();
+  await seedLandings(db);
 }
 
 main()

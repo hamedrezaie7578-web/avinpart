@@ -28,7 +28,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           <Icon name={product.icon} className="size-6" />
         </span>
         <span className="text-muted-foreground text-sm font-medium">{product.industryName}</span>
-        <span className="mt-1 text-lg font-extrabold" dir="ltr">
+        <span className="mt-1 self-start text-lg font-extrabold" dir="ltr">
           {product.name}
         </span>
         <span className="text-muted-foreground mt-2 flex-1 text-sm leading-7">
