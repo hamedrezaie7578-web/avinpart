@@ -28,6 +28,9 @@
   --destructive-foreground: #ffffff;
   --success: #15803d;
   --warning: #b45309;
+  /* رنگ داده‌ی نمودارها (اعتبارسنجی‌شده با validate_palette برای هر دو حالت) */
+  --chart-1: #4f46e5;
+  --chart-grid: #e8ebf2;
 
   /* تم محصول — مقدار پیش‌فرض: برند AvinApps. در لندینگ‌ها با style inline بازنویسی می‌شود. */
   --brand: #4f46e5;
@@ -65,6 +68,8 @@
   --destructive-foreground: #0b0b0f;
   --success: #4ade80;
   --warning: #fbbf24;
+  --chart-1: #6d6af0;
+  --chart-grid: #222737;
 }
 
 /* تم محصول: ProductThemeScope مقادیر --p-* را inline می‌گذارد و اینجا بر اساس حالت روشن/تاریک انتخاب می‌شوند */
