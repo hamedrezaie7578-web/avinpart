@@ -95,3 +95,31 @@ export const getHomeTexts = unstable_cache(
   ["home-texts"],
   { tags: [CACHE_TAGS.settings], revalidate: 3600 },
 );
+
+export type SeoSettings = { defaultTitle: string; defaultDescription: string; googleSiteVerification: string; googleAnalyticsId: string; robotsExtra: string };
+
+/** تنظیمات سئوی سراسری؛ در نبود دیتابیس (مثلاً هنگام build) مقادیر پیش‌فرض برمی‌گردد */
+export const getSeoSettings = unstable_cache(
+  async (): Promise<SeoSettings> => {
+    const d: SeoSettings = {
+      defaultTitle: "AvinApps | نرم‌افزار حسابداری و مدیریت کسب‌وکار برای همه‌ی صنف‌ها",
+      defaultDescription:
+        "نرم‌افزار حسابداری فروشگاهی تخصصی برای هر صنف؛ نسخه‌ی ویندوز، اندروید و تحت وب، اتصال به سامانه‌ی مودیان و طراحی نرم‌افزار و سایت اختصاصی.",
+      googleSiteVerification: "",
+      googleAnalyticsId: "",
+      robotsExtra: "",
+    };
+    try {
+      const rows = await db.setting.findMany({ where: { key: { startsWith: "seo." } } });
+      for (const r of rows) {
+        const k = r.key.slice(4) as keyof SeoSettings;
+        if (k in d && typeof r.value === "string" && r.value) d[k] = r.value;
+      }
+    } catch {
+      // build بدون دیتابیس
+    }
+    return d;
+  },
+  ["seo-settings"],
+  { tags: [CACHE_TAGS.settings], revalidate: 3600 },
+);

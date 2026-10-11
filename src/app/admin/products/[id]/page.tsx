@@ -156,7 +156,7 @@ async function General({ id, product }: { id: string | null; product: { slug: st
   const related = new Set(product?.related.map((r) => r.id));
   return (
     <Card className="max-w-4xl">
-      <ActionForm action={saveProductGeneral.bind(null, id)} redirectTo={id ? undefined : (d) => `/admin/products/${(d as { id: string }).id}?tab=theme`}>
+      <ActionForm action={saveProductGeneral.bind(null, id)} redirectTo={id ? undefined : "/admin/products/{id}?tab=theme"}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="نام محصول" name="name" required defaultValue={product?.name} placeholder="AvinGold" dir="ltr" />
           <Field label="نامک (آدرس صفحه)" name="slug" required defaultValue={product?.slug} placeholder="avingold" dir="ltr" pattern="[a-z0-9-]+" />

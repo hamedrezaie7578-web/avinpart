@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { getConfig } from "@/lib/secrets";
 
 /** لایه‌ی Adapter پیامک: با تغییر SMS_PROVIDER سرویس عوض می‌شود */
 export interface SmsProvider {
@@ -62,20 +63,20 @@ class KavenegarProvider implements SmsProvider {
   }
 }
 
-let provider: SmsProvider | null = null;
+let provider: { sig: string; p: SmsProvider } | null = null;
 
-export function getSmsProvider(): SmsProvider {
-  if (provider) return provider;
-  const key = process.env.KAVENEGAR_API_KEY;
-  provider =
-    process.env.SMS_PROVIDER === "kavenegar" && key
-      ? new KavenegarProvider(
-          key,
-          process.env.KAVENEGAR_SENDER || undefined,
-          process.env.KAVENEGAR_OTP_TEMPLATE || "avinapps-otp",
-        )
-      : new ConsoleProvider();
-  return provider;
+export async function getSmsProvider(): Promise<SmsProvider> {
+  const [name, key, sender, otp] = await Promise.all([
+    getConfig("sms.provider"),
+    getConfig("sms.kavenegar.apiKey"),
+    getConfig("sms.kavenegar.sender"),
+    getConfig("sms.kavenegar.otpTemplate"),
+  ]);
+  const sig = [name, key, sender, otp].join("|");
+  if (provider?.sig === sig) return provider.p;
+  const p = name === "kavenegar" && key ? new KavenegarProvider(key, sender || undefined, otp || "avinapps-otp") : new ConsoleProvider();
+  provider = { sig, p };
+  return p;
 }
 
 /** جای‌گذاری متغیرهای {{name}} در قالب */
@@ -92,7 +93,7 @@ export async function sendTemplateSms(
   mobile: string,
   vars: Record<string, string | number>,
 ): Promise<boolean> {
-  const sms = getSmsProvider();
+  const sms = await getSmsProvider();
   try {
     const tpl = await db.notificationTemplate.findUnique({ where: { key } });
     if (!tpl || !tpl.isActive || tpl.channel !== "sms") return false;

@@ -38,7 +38,7 @@ export async function requestOtp(mobileInput: string): Promise<OtpRequestResult>
     };
 
   const code = await createOtp(mobile, ip);
-  const sms = getSmsProvider();
+  const sms = await getSmsProvider();
   try {
     await sms.sendOtp(mobile, code);
   } catch (e) {

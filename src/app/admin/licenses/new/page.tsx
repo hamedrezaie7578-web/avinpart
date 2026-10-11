@@ -12,7 +12,7 @@ export default async function NewLicensePage() {
   return (
     <AdminPage title="صدور لایسنس دستی" description="برای فروش حضوری، نمایندگی یا هدیه. اگر مشتری حساب نداشته باشد با همین موبایل ساخته می‌شود." back={{ href: "/admin/licenses", label: "لایسنس‌ها" }}>
       <Card className="max-w-2xl">
-        <ActionForm action={createManualLicense} redirectTo={(d) => `/admin/licenses/${(d as { id: string }).id}`} submitLabel="صدور لایسنس">
+        <ActionForm action={createManualLicense} redirectTo="/admin/licenses/{id}" submitLabel="صدور لایسنس">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="موبایل مشتری" name="mobile" dir="ltr" required />
             <Field label="نام مشتری (اختیاری)" name="name" />

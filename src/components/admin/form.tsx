@@ -25,7 +25,8 @@ export function ActionForm({
   action: (fd: FormData) => Promise<Result>;
   children: ReactNode;
   submitLabel?: string;
-  redirectTo?: string | ((data: unknown) => string);
+  /** مسیر پس از موفقیت؛ {id} با data.id نتیجه جایگزین می‌شود */
+  redirectTo?: string;
   resetOnSuccess?: boolean;
   className?: string;
   footer?: boolean;
@@ -45,7 +46,7 @@ export function ActionForm({
           if (!r.ok) return void toast.error(r.message ?? "خطا");
           toast.success(r.message ?? "ذخیره شد.");
           if (resetOnSuccess) ref.current?.reset();
-          if (redirectTo) router.push(typeof redirectTo === "function" ? redirectTo(r.data) : redirectTo);
+          if (redirectTo) router.push(redirectTo.replace("{id}", String((r.data as { id?: string } | undefined)?.id ?? "")));
           else router.refresh();
         });
       }}

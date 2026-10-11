@@ -1,4 +1,5 @@
 import "server-only";
+import { getConfig } from "@/lib/secrets";
 import { randomUUID } from "node:crypto";
 
 /**
@@ -129,14 +130,15 @@ export function isMockPaymentAllowed() {
   return process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_PAYMENT === "true";
 }
 
-export function getPaymentGateway(name = process.env.PAYMENT_GATEWAY || "mock"): PaymentGateway {
-  if (name === "zarinpal") {
-    const merchant = process.env.ZARINPAL_MERCHANT_ID;
-    if (!merchant) throw new Error("ZARINPAL_MERCHANT_ID تنظیم نشده است");
-    return new ZarinpalGateway(merchant, process.env.ZARINPAL_SANDBOX === "true");
+export async function getPaymentGateway(name?: string): Promise<PaymentGateway> {
+  const gw = name || (await getConfig("payment.gateway")) || "mock";
+  if (gw === "zarinpal") {
+    const merchant = await getConfig("payment.zarinpal.merchant");
+    if (!merchant) throw new Error("مرچنت‌کد زرین‌پال تنظیم نشده است");
+    return new ZarinpalGateway(merchant, (await getConfig("payment.zarinpal.sandbox")) === "true");
   }
-  if (name === "mock" && isMockPaymentAllowed()) return new MockGateway();
-  throw new Error(`درگاه پرداخت «${name}» پیکربندی نشده است`);
+  if (gw === "mock" && isMockPaymentAllowed()) return new MockGateway();
+  throw new Error(`درگاه پرداخت «${gw}» پیکربندی نشده است`);
 }
 
 /** تومان → ریال */

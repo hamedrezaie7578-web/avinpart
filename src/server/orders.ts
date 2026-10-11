@@ -30,7 +30,7 @@ export async function startPayment(
     return { ok: true, redirectUrl: `/payment/result?order=${orderId}` };
   }
 
-  const gateway = getPaymentGateway();
+  const gateway = await getPaymentGateway();
   const callbackUrl = `${SITE_URL}/api/payment/callback?gw=${gateway.name}`;
   const r = await gateway.request({
     amountRial: tomanToRial(order.total),

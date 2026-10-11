@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { getConfig } from "@/lib/secrets";
+import { sendTemplateSms } from "@/lib/sms";
 import { rateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
 import { contactSchema, demoRequestSchema, newsletterSchema } from "@/lib/validations/lead";
@@ -51,6 +53,9 @@ export async function submitDemoRequest(input: unknown): Promise<ActionResult> {
       href: "/admin/forms",
     },
   });
+  const adminMobile = await getConfig("sms.adminMobile");
+  if (adminMobile && type === "DEMO")
+    await sendTemplateSms("demo_request_admin", adminMobile, { name, mobile, product: productSlug ?? "—" });
   return {
     ok: true,
     message: "درخواست شما ثبت شد. کارشناسان ما حداکثر تا یک روز کاری با شما تماس می‌گیرند.",

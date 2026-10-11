@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     return result(payment.orderId, "&failed=1");
   }
 
-  const gateway = getPaymentGateway(payment.gateway);
+  const gateway = await getPaymentGateway(payment.gateway);
   const v = await gateway.verify({ authority, amountRial: tomanToRial(payment.amount) });
   if (!v.ok) {
     await failPayment(payment.id, v.raw);

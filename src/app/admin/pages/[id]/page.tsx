@@ -31,7 +31,7 @@ export default async function PageEdit({ params }: { params: Promise<{ id: strin
         )
       }
     >
-      <ActionForm action={savePage.bind(null, isNew ? null : id)} redirectTo={isNew ? (d) => `/admin/pages/${(d as { id: string }).id}` : undefined}>
+      <ActionForm action={savePage.bind(null, isNew ? null : id)} redirectTo={isNew ? "/admin/pages/{id}" : undefined}>
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <Card>
             <div className="grid gap-4">

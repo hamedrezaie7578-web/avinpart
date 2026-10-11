@@ -103,3 +103,10 @@ export const PLATFORM_LABEL = {
   WEB: "تحت وب",
   IOS: "iOS",
 } as const;
+
+export const TICKET_PRIORITY = {
+  LOW: ["gray", "کم"],
+  NORMAL: ["blue", "عادی"],
+  HIGH: ["amber", "زیاد"],
+  URGENT: ["red", "فوری"],
+} as const;
