@@ -130,8 +130,12 @@ export function ScreenshotsEditor({ initial, action }: { initial: Shot[]; action
 }
 
 /** فیلد انتخاب یک تصویر (لوگو، تصویر OG، کاور) که شناسه را در input مخفی نگه می‌دارد */
-export function MediaField({ name, label, initial }: { name: string; label: string; initial?: { id: string; url: string } | null }) {
-  const [m, setM] = useState(initial ?? null);
+export function MediaField({ name, label, initial, onChange }: { name: string; label: string; initial?: { id: string; url: string } | null; onChange?: (m: { id: string; url: string } | null) => void }) {
+  const [m, setMState] = useState(initial ?? null);
+  const setM = (v: { id: string; url: string } | null) => {
+    setMState(v);
+    onChange?.(v);
+  };
   const { pick, dialog } = useMediaPicker();
   return (
     <div>

@@ -27,7 +27,7 @@ export const getLandingProduct = unstable_cache(
           },
         },
         posts: {
-          where: { status: "PUBLISHED" },
+          where: { status: "PUBLISHED", publishAt: { lte: new Date() } },
           take: 3,
           orderBy: { publishAt: "desc" },
           select: { slug: true, title: true, excerpt: true, readingMinutes: true },
