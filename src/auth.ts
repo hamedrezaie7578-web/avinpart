@@ -4,7 +4,9 @@ import { verify as verifyPassword } from "@node-rs/argon2";
 import { z } from "zod";
 import { authConfig } from "./auth.config";
 import { db } from "@/lib/db";
-import { normalizeMobile } from "@/lib/format";
+import { normalizeMobile, toEnDigits } from "@/lib/format";
+import { decrypt } from "@/lib/crypto";
+import { verifyTotp } from "@/lib/totp";
 import { verifyOtp } from "@/lib/otp";
 import { rateLimit } from "@/lib/rate-limit";
 import { mergeGuestCart } from "@/server/cart";
@@ -63,10 +65,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     /** ورود مدیران با موبایل یا ایمیل و رمز عبور */
     Credentials({
       id: "admin",
-      credentials: { identifier: {}, password: {} },
+      credentials: { identifier: {}, password: {}, totp: {} },
       async authorize(raw) {
         const parsed = z
-          .object({ identifier: z.string().min(3).max(120), password: z.string().min(6).max(200) })
+          .object({ identifier: z.string().min(3).max(120), password: z.string().min(6).max(200), totp: z.string().max(10).optional() })
           .safeParse(raw);
         if (!parsed.success) return null;
         const id = parsed.data.identifier.trim().toLowerCase();
@@ -76,6 +78,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await db.user.findFirst({ where: mobile ? { mobile } : { email: id } });
         if (!user || user.type !== "ADMIN" || !user.passwordHash || user.isBlocked) return null;
         if (!(await verifyPassword(user.passwordHash, parsed.data.password))) return null;
+        // ورود دومرحله‌ای (اختیاری برای هر مدیر)
+        if (user.totpEnabled && user.totpSecret) {
+          const code = toEnDigits(parsed.data.totp ?? "").trim();
+          if (!code) throw new OtpError("totp_required");
+          if (!(await rateLimit(`admin-totp:${user.id}`, 5, 900)).ok) throw new OtpError("too_many");
+          if (!verifyTotp(decrypt(user.totpSecret), code)) throw new OtpError("totp_invalid");
+        }
 
         await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
         await db.auditLog.create({

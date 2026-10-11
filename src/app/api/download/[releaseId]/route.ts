@@ -35,10 +35,13 @@ export async function GET(
     if (!owns) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const data = await getStorage().get(release.file.path);
+  const storage = getStorage();
   await db.release.update({ where: { id: release.id }, data: { downloads: { increment: 1 } } });
   const ext = release.file.path.slice(release.file.path.lastIndexOf("."));
   const filename = `AvinApps-${release.platform}-${release.version}${ext}`;
+  // روی S3: لینک موقت ۱۰ دقیقه‌ای (فایل‌های نصب حجیم در حافظه‌ی سرور بارگذاری نمی‌شوند)
+  if (storage.signedUrl) return NextResponse.redirect(await storage.signedUrl(release.file.path, 600, filename), 302);
+  const data = await storage.get(release.file.path);
   return new NextResponse(new Uint8Array(data), {
     headers: {
       "Content-Type": release.file.mime || "application/octet-stream",

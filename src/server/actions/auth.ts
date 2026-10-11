@@ -82,16 +82,20 @@ export async function adminSignIn(
   identifier: string,
   password: string,
   callbackUrl?: string,
-): Promise<{ ok: false; message: string } | void> {
+  totp?: string,
+): Promise<{ ok: false; message: string; needTotp?: boolean } | void> {
   try {
     await signIn("admin", {
       identifier,
       password,
+      totp: totp ?? "",
       redirectTo: safeCallback(callbackUrl, "/admin"),
     });
   } catch (e) {
     if (e instanceof AuthError) {
       const c = (e as AuthError & { code?: string }).code;
+      if (c === "totp_required") return { ok: false, needTotp: true, message: "کد ۶ رقمی برنامه‌ی Authenticator را وارد کنید." };
+      if (c === "totp_invalid") return { ok: false, needTotp: true, message: "کد ورود دومرحله‌ای اشتباه یا منقضی است." };
       return {
         ok: false,
         message:

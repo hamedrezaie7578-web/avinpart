@@ -2,10 +2,11 @@ import "server-only";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { AwsClient } from "aws4fetch";
 
 /**
  * لایه‌ی Adapter ذخیره‌سازی فایل.
- * فعلاً درایور محلی؛ درایور S3-compatible (آروان کلاد) با همین interface اضافه می‌شود.
+ * درایور محلی (پیش‌فرض) یا S3-compatible مثل آروان‌کلاد با STORAGE_DRIVER=s3.
  */
 export interface StorageDriver {
   put(key: string, data: Buffer, contentType: string): Promise<void>;
@@ -13,6 +14,8 @@ export interface StorageDriver {
   delete(key: string): Promise<void>;
   /** آدرس عمومی برای فایل‌های public؛ فایل‌های خصوصی از طریق API امن سرو می‌شوند */
   publicUrl(key: string): string;
+  /** لینک موقت مستقیم (فقط S3) برای دانلود فایل‌های حجیم بدون عبور از سرور برنامه */
+  signedUrl?(key: string, seconds: number, downloadName?: string): Promise<string>;
 }
 
 class LocalDriver implements StorageDriver {
@@ -38,9 +41,56 @@ class LocalDriver implements StorageDriver {
   }
 }
 
+/** ذخیره‌سازی S3-compatible (آروان‌کلاد، MinIO، …) با امضای SigV4؛ همه‌ی فایل‌ها private ذخیره و از طریق برنامه سرو می‌شوند */
+class S3Driver implements StorageDriver {
+  private client: AwsClient;
+  constructor(
+    private endpoint: string,
+    private bucket: string,
+    accessKeyId: string,
+    secretAccessKey: string,
+    region: string,
+  ) {
+    this.client = new AwsClient({ accessKeyId, secretAccessKey, region, service: "s3" });
+  }
+  private url(key: string) {
+    if (key.includes("..")) throw new Error("مسیر فایل نامعتبر است");
+    return `${this.endpoint.replace(/\/$/, "")}/${this.bucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
+  }
+  async put(key: string, data: Buffer, contentType: string) {
+    const r = await this.client.fetch(this.url(key), { method: "PUT", body: new Uint8Array(data), headers: { "Content-Type": contentType } });
+    if (!r.ok) throw new Error(`S3 put failed: ${r.status} ${await r.text().catch(() => "")}`);
+  }
+  async get(key: string) {
+    const r = await this.client.fetch(this.url(key));
+    if (!r.ok) throw new Error(`S3 get failed: ${r.status}`);
+    return Buffer.from(await r.arrayBuffer());
+  }
+  async delete(key: string) {
+    await this.client.fetch(this.url(key), { method: "DELETE" }).catch(() => {});
+  }
+  publicUrl(key: string) {
+    return `/api/files/${key}`;
+  }
+  async signedUrl(key: string, seconds: number, downloadName?: string) {
+    const u = new URL(this.url(key));
+    u.searchParams.set("X-Amz-Expires", String(seconds));
+    if (downloadName) u.searchParams.set("response-content-disposition", `attachment; filename="${downloadName}"`);
+    const signed = await this.client.sign(u.toString(), { method: "GET", aws: { signQuery: true } });
+    return signed.url;
+  }
+}
+
 let driver: StorageDriver | null = null;
 export function getStorage(): StorageDriver {
-  driver ??= new LocalDriver(process.env.STORAGE_LOCAL_DIR || "./storage");
+  if (driver) return driver;
+  const e = process.env;
+  if (e.STORAGE_DRIVER === "s3") {
+    if (!e.S3_ENDPOINT || !e.S3_BUCKET || !e.S3_ACCESS_KEY || !e.S3_SECRET_KEY) throw new Error("تنظیمات S3 ناقص است (S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY)");
+    driver = new S3Driver(e.S3_ENDPOINT, e.S3_BUCKET, e.S3_ACCESS_KEY, e.S3_SECRET_KEY, e.S3_REGION || "ir-thr-at1");
+  } else {
+    driver = new LocalDriver(e.STORAGE_LOCAL_DIR || "./storage");
+  }
   return driver;
 }
 

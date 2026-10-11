@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { LogOut, Menu, Search } from "lucide-react";
 import { Toaster } from "sonner";
@@ -29,7 +30,7 @@ export function AdminShell({ groups, user, logout, children }: { groups: AdminNa
           <div className="ms-auto flex items-center gap-1">
             <NotificationsBell />
             <ThemeToggle />
-            <span className="mx-2 hidden text-sm font-medium md:inline">{user.name || user.mobile}</span>
+            <Link href="/admin/account" className="mx-2 hidden text-sm font-medium hover:text-primary md:inline" title="حساب من">{user.name || user.mobile}</Link>
             <form action={logout}>
               <button type="submit" className="rounded-lg p-2 hover:bg-accent" aria-label="خروج"><LogOut className="size-5" /></button>
             </form>

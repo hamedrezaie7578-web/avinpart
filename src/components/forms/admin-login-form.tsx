@@ -10,6 +10,7 @@ const field =
 
 export function AdminLoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [error, setError] = useState<string | null>(null);
+  const [needTotp, setNeedTotp] = useState(false);
   const [pending, start] = useTransition();
   return (
     <form
@@ -22,8 +23,12 @@ export function AdminLoginForm({ callbackUrl }: { callbackUrl?: string }) {
             String(fd.get("identifier")),
             String(fd.get("password")),
             callbackUrl,
+            needTotp ? String(fd.get("totp") ?? "") : undefined,
           );
-          if (r && !r.ok) setError(r.message);
+          if (r && !r.ok) {
+            setError(r.message);
+            if (r.needTotp) setNeedTotp(true);
+          }
         });
       }}
     >
@@ -54,6 +59,24 @@ export function AdminLoginForm({ callbackUrl }: { callbackUrl?: string }) {
           className={field}
         />
       </div>
+      {needTotp && (
+        <div>
+          <label htmlFor="adm-totp" className="mb-1.5 block text-sm font-medium">
+            کد ورود دومرحله‌ای
+          </label>
+          <input
+            id="adm-totp"
+            name="totp"
+            dir="ltr"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            autoFocus
+            required
+            className={`${field} text-center font-mono text-xl tracking-[0.5em]`}
+          />
+        </div>
+      )}
       {error && (
         <p role="alert" className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
           {error}

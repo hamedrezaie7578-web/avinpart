@@ -24,14 +24,14 @@ export class ActionError extends Error {}
 
 export type ActionResult<T = undefined> = { ok: true; message?: string; data?: T } | { ok: false; message: string };
 
-/** اجرای امن Server Action مدیریتی با بررسی مجوز و مدیریت خطا */
+/** اجرای امن Server Action مدیریتی با بررسی مجوز و مدیریت خطا؛ permission="self" یعنی هر مدیر واردشده (تنظیمات حساب خودش) */
 export async function adminAction<T>(permission: string, fn: (admin: AdminUser) => Promise<ActionResult<T> | void>): Promise<ActionResult<T>> {
   const session = await auth();
   if (!session?.user) return { ok: false, message: "نشست شما منقضی شده است؛ دوباره وارد شوید." };
   const u = await db.user.findUnique({ where: { id: session.user.id }, include: { role: true } });
   if (!u || u.type !== "ADMIN" || u.isBlocked) return { ok: false, message: "دسترسی غیرمجاز." };
   const permissions = u.role?.permissions ?? [];
-  if (!hasPermission(permissions, permission)) return { ok: false, message: "شما مجوز انجام این عملیات را ندارید." };
+  if (permission !== "self" && !hasPermission(permissions, permission)) return { ok: false, message: "شما مجوز انجام این عملیات را ندارید." };
   try {
     return (await fn({ id: u.id, name: u.name, mobile: u.mobile, permissions })) ?? { ok: true, message: "ذخیره شد." };
   } catch (e) {
