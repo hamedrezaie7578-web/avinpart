@@ -13,6 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
     description: seo.defaultDescription,
     applicationName: SITE_NAME,
     formatDetection: { telephone: false },
+    openGraph: { type: "website", siteName: SITE_NAME, locale: "fa_IR", title: seo.defaultTitle, description: seo.defaultDescription },
+    twitter: { card: "summary_large_image" },
     ...(seo.googleSiteVerification ? { verification: { google: seo.googleSiteVerification } } : {}),
   };
 }

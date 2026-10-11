@@ -17,6 +17,7 @@ import {
 } from "./data/settings";
 import { generalTestimonials } from "./data/testimonials";
 import { seedLandings } from "./landings";
+import { seedPosts } from "./posts";
 import { portfolio, serviceFaqs } from "./data/services";
 import { pageContents } from "./content/pages";
 import { SYSTEM_ROLES } from "../../src/lib/permissions";
@@ -195,6 +196,7 @@ async function main() {
   await seedPlans();
   await seedSettingsAndContent();
   await seedLandings(db);
+  await seedPosts(db);
 }
 
 main()
