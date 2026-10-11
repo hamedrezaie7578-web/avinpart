@@ -20,6 +20,18 @@ function range(sp: URLSearchParams) {
 }
 
 const EXPORTERS: Record<string, Exporter> = {
+  products: {
+    perm: "products.read",
+    title: "محصولات",
+    columns: [
+      { header: "نام", key: "name", width: 18 }, { header: "نامک", key: "slug", width: 16 }, { header: "صنف", key: "industry", width: 24 },
+      { header: "دسته", key: "category", width: 16 }, { header: "وضعیت", key: "status", width: 12 }, { header: "لایسنس فروخته‌شده", key: "licenses", width: 14 },
+    ],
+    rows: async () => {
+      const r = await db.product.findMany({ include: { category: true, _count: { select: { licenses: true } } }, orderBy: { sortOrder: "asc" } });
+      return r.map((p) => ({ name: p.name, slug: p.slug, industry: p.industryName, category: p.category?.name ?? "", status: p.status, licenses: p._count.licenses }));
+    },
+  },
   orders: {
     perm: "reports.export",
     title: "سفارش‌ها",

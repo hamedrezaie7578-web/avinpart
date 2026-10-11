@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { CACHE_TAGS } from "./catalog";
+import { resolveHomeTexts } from "@/lib/home-texts";
 
 export type SiteSettings = {
   name: string;
@@ -84,3 +85,13 @@ export function telHref(phone: string): string {
   const fa = "۰۱۲۳۴۵۶۷۸۹";
   return "tel:" + phone.replace(/[۰-۹]/g, (d) => String(fa.indexOf(d))).replace(/[^\d+]/g, "");
 }
+
+/** متن‌های صفحه‌ی اصلی (قابل ویرایش در پنل → صفحات) */
+export const getHomeTexts = unstable_cache(
+  async () => {
+    const row = await db.setting.findUnique({ where: { key: "home.texts" } });
+    return resolveHomeTexts(row?.value);
+  },
+  ["home-texts"],
+  { tags: [CACHE_TAGS.settings], revalidate: 3600 },
+);

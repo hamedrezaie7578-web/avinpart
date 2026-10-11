@@ -16,7 +16,7 @@ import { PricingSection } from "@/components/sections/pricing-section";
 import { CtaWithForm } from "@/components/sections/cta-with-form";
 import { getPublishedProducts } from "@/server/queries/catalog";
 import { getHomeData } from "@/server/queries/landing";
-import { getSettings } from "@/server/queries/settings";
+import { getHomeTexts, getSettings } from "@/server/queries/settings";
 import { formatDate, toFaDigits } from "@/lib/format";
 import { absoluteUrl, SITE_NAME } from "@/lib/site";
 
@@ -69,10 +69,11 @@ const BENEFITS = [
 ];
 
 export default async function HomePage() {
-  const [products, { testimonials, faqs, posts }, settings] = await Promise.all([
+  const [products, { testimonials, faqs, posts }, settings, t] = await Promise.all([
     getPublishedProducts(),
     getHomeData(),
     getSettings(),
+    getHomeTexts(),
   ]);
   const categories = [
     ...new Map(
@@ -100,16 +101,13 @@ export default async function HomePage() {
           <div className="animate-fade-up">
             <p className="glass-on-dark mb-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium">
               <BadgeCheck className="size-4 text-amber-300" aria-hidden />
-              متصل به سامانه‌ی مودیان مالیاتی
+              {t.heroEyebrow}
             </p>
             <h1 className="text-[2rem] leading-[1.35] font-black text-balance sm:text-5xl sm:leading-[1.3]">
-              حسابداری کسب‌وکارتان را به نرم‌افزاری بسپارید که{" "}
-              <span className="text-amber-300">زبان صنف شما</span> را می‌فهمد
+              {t.heroTitle} <span className="text-amber-300">{t.heroHighlight}</span> {t.heroTitleEnd}
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-9 opacity-90">
-              {toFaDigits(settings.stats.industries)} نرم‌افزار تخصصی Avin برای طلافروشی، داروخانه،
-              سوپرمارکت، رستوران و ده‌ها صنف دیگر؛ روی ویندوز، اندروید و وب، با فروش سریع، انبار
-              دقیق و گزارش سود لحظه‌ای.
+              {t.heroSubtitle.replace("{industries}", toFaDigits(settings.stats.industries))}
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Button
@@ -183,8 +181,8 @@ export default async function HomePage() {
         <SectionHeader
           id="industries-title"
           eyebrow={`${toFaDigits(products.length)} نرم‌افزار تخصصی`}
-          title="صنف شما چیست؟"
-          description="هر کسب‌وکار حساب‌وکتاب خودش را دارد. صنف‌تان را پیدا کنید و ببینید نرم‌افزار Avin دقیقاً چه دردسرهایی را از روز شما حذف می‌کند."
+          title={t.industriesTitle}
+          description={t.industriesDesc}
         />
         <IndustryFinder
           categories={categories.map((c) => ({ slug: c.slug, name: c.name }))}
@@ -201,9 +199,9 @@ export default async function HomePage() {
       <Section muted aria-labelledby="why-title">
         <SectionHeader
           id="why-title"
-          eyebrow="چرا AvinApps؟"
-          title="کمتر وقت پای حساب‌وکتاب بگذارید، بیشتر برای رشد کسب‌وکار"
-          description="صاحبان کسب‌وکار نرم‌افزار حسابداری نمی‌خواهند؛ آرامش می‌خواهند. اینکه بدانند موجودی درست است، چک‌ها سر وقت وصول می‌شود و سود واقعی چقدر است."
+          eyebrow={t.whyEyebrow}
+          title={t.whyTitle}
+          description={t.whyDesc}
         />
         <FeatureGrid items={BENEFITS} />
       </Section>
@@ -218,14 +216,13 @@ export default async function HomePage() {
           <div>
             <p className="bg-accent text-accent-foreground mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold">
               <Code2 className="size-4" aria-hidden />
-              طراحی اختصاصی
+              {t.customEyebrow}
             </p>
             <h2 id="custom-title" className="text-2xl leading-tight font-extrabold md:text-4xl">
-              فرایند کسب‌وکار شما خاص است؟ نرم‌افزارش را از صفر برایتان می‌سازیم
+              {t.customTitle}
             </h2>
             <p className="text-muted-foreground mt-4 text-lg leading-8">
-              ERP و CRM سفارشی، اپلیکیشن اندروید، وب‌اپلیکیشن و اتصال به سیستم‌های فعلی‌تان؛ از
-              نیازسنجی تا تحویل و پشتیبانی، با کدنویسی اختصاصی و مالکیت کامل.
+              {t.customDesc}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="h-12 rounded-xl px-6 font-bold">
@@ -265,7 +262,7 @@ export default async function HomePage() {
           <SectionHeader
             id="testimonials-title"
             eyebrow="تجربه‌ی مشتریان"
-            title="از زبان کسانی که هر روز با Avin کار می‌کنند"
+            title={t.testimonialsTitle}
           />
           <TestimonialGrid items={testimonials} />
         </Section>
@@ -278,7 +275,7 @@ export default async function HomePage() {
               id="posts-title"
               align="start"
               eyebrow="وبلاگ"
-              title="راهنماهای کاربردی برای مدیریت کسب‌وکار"
+              title={t.blogTitle}
               className="mb-0 md:mb-0"
             />
             <Link
@@ -315,15 +312,15 @@ export default async function HomePage() {
           <SectionHeader
             id="faq-title"
             eyebrow="سؤالات متداول"
-            title="پیش از خرید چه چیزهایی را بدانید؟"
+            title={t.faqTitle}
           />
           <FAQ items={faqs} />
         </Section>
       )}
 
       <CtaWithForm
-        title="یک دموی ۲۰ دقیقه‌ای، تا ببینید حساب‌وکتاب چقدر می‌تواند ساده باشد"
-        description="کارشناس ما نرم‌افزار مخصوص صنف شما را زنده نشان می‌دهد و به همه‌ی سؤال‌هایتان جواب می‌دهد؛ بدون هزینه و بدون تعهد."
+        title={t.ctaTitle}
+        description={t.ctaDesc}
       />
 
       <JsonLd

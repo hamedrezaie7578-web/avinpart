@@ -15,7 +15,7 @@ export function TableToolbar({ filters = [], searchPlaceholder = "جست‌وج�
 
   const push = (patch: Record<string, string | null>) => {
     const u = new URLSearchParams(sp.toString());
-    for (const [k, v] of Object.entries(patch)) (v ? u.set(k, v) : u.delete(k));
+    for (const [k, v] of Object.entries(patch)) if (v) u.set(k, v); else u.delete(k);
     u.delete("page");
     router.replace(`${pathname}?${u.toString()}`);
   };

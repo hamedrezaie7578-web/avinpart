@@ -77,3 +77,21 @@ export function LinkButton({ href, children, variant = "primary" }: { href: stri
     </Link>
   );
 }
+
+/** تب‌های مبتنی بر URL (?tab=) برای صفحات ویرایش چندبخشی */
+export function Tabs({ base, tabs, active }: { base: string; tabs: Array<{ key: string; label: string }>; active: string }) {
+  return (
+    <nav aria-label="بخش‌ها" className="mb-5 flex gap-1 overflow-x-auto border-b">
+      {tabs.map((t) => (
+        <Link
+          key={t.key}
+          href={`${base}?tab=${t.key}`}
+          aria-current={t.key === active ? "page" : undefined}
+          className={cn("-mb-px border-b-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition", t.key === active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
+        >
+          {t.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}

@@ -12,7 +12,7 @@ type SP = Record<string, string | string[] | undefined>;
 function hrefWith(base: string, sp: SP, patch: Record<string, string | null>) {
   const u = new URLSearchParams();
   for (const [k, v] of Object.entries(sp)) if (typeof v === "string") u.set(k, v);
-  for (const [k, v] of Object.entries(patch)) v === null ? u.delete(k) : u.set(k, v);
+  for (const [k, v] of Object.entries(patch)) if (v === null) u.delete(k); else u.set(k, v);
   const s = u.toString();
   return s ? `${base}?${s}` : base;
 }
