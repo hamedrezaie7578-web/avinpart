@@ -1,0 +1,14 @@
+/**
+ * تولید جفت‌کلید Ed25519 برای امضای لایسنس‌ها.
+ * اجرا: npm run license:keys — خروجی را در .env قرار دهید.
+ * کلید عمومی را در نرم‌افزارهای ویندوز/اندروید جاسازی کنید؛ کلید خصوصی هرگز نباید منتشر شود.
+ */
+import { generateKeyPairSync } from "node:crypto";
+
+const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+console.log(
+  `LICENSE_PRIVATE_KEY=${privateKey.export({ format: "der", type: "pkcs8" }).toString("base64")}`,
+);
+console.log(
+  `LICENSE_PUBLIC_KEY=${publicKey.export({ format: "der", type: "spki" }).toString("base64")}`,
+);

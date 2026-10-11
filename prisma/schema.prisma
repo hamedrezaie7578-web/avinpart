@@ -281,12 +281,13 @@ enum DiscountType {
 
 // ───────────── سبد، سفارش، پرداخت، فاکتور ─────────────
 model Cart {
-  id        String     @id @default(cuid())
-  userId    String?    @unique
-  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  guestId   String?    @unique // کوکی برای کاربر مهمان
-  items     CartItem[]
-  updatedAt DateTime   @updatedAt
+  id         String     @id @default(cuid())
+  userId     String?    @unique
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestId    String?    @unique // کوکی برای کاربر مهمان
+  couponCode String?
+  items      CartItem[]
+  updatedAt  DateTime   @updatedAt
 }
 
 model CartItem {

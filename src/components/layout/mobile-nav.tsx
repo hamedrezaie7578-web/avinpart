@@ -82,7 +82,7 @@ export function MobileNav({ links, categories }: { links: NavLink[]; categories:
               <Link href="/contact#demo">دریافت دموی رایگان</Link>
             </Button>
             <Button asChild variant="outline" className="h-11 rounded-xl font-bold">
-              <Link href="/login">ورود / ثبت‌نام</Link>
+              <Link href="/dashboard">حساب کاربری / ورود</Link>
             </Button>
           </div>
         </nav>

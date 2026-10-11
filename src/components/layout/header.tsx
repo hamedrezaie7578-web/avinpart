@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { UserRound } from "lucide-react";
+import { ShoppingCart, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/design-system/theme-toggle";
 import { getPublishedProducts } from "@/server/queries/catalog";
@@ -60,14 +60,19 @@ export async function Header() {
           </nav>
           <div className="ms-auto flex items-center gap-1.5">
             <ThemeToggle />
+            <Button asChild variant="ghost" size="icon" aria-label="سبد خرید">
+              <Link href="/cart" prefetch={false}>
+                <ShoppingCart className="size-5" />
+              </Link>
+            </Button>
             <Button
               asChild
               variant="ghost"
               className="hidden h-10 gap-1.5 rounded-lg sm:inline-flex"
             >
-              <Link href="/login">
+              <Link href="/dashboard" prefetch={false}>
                 <UserRound className="size-4" aria-hidden />
-                ورود
+                حساب کاربری
               </Link>
             </Button>
             <Button

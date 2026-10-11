@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { ATTACHMENT_RULES, getStorage, makeKey, sniffMatches } from "@/lib/storage";
 
 /**
- * آپلود پیوست‌های کاربر (فرم سفارش اختصاصی). فایل‌ها خصوصی ذخیره می‌شوند
+ * آپلود پیوست‌های کاربر (فرم سفارش اختصاصی و تیکت پشتیبانی). فایل‌ها خصوصی ذخیره می‌شوند
  * و فقط از پنل مدیریت/کاربری قابل دریافت‌اند.
  */
 export async function POST(req: NextRequest) {
@@ -20,6 +21,11 @@ export async function POST(req: NextRequest) {
     );
 
   const form = await req.formData().catch(() => null);
+  // purpose: custom-order (بدون نیاز به ورود) یا ticket (فقط کاربر واردشده)
+  const purpose = form?.get("purpose") === "ticket" ? "ticket" : "custom-order";
+  const session = purpose === "ticket" ? await auth() : null;
+  if (purpose === "ticket" && !session?.user)
+    return NextResponse.json({ error: "ابتدا وارد حساب کاربری شوید." }, { status: 401 });
   const files = form?.getAll("files").filter((f): f is File => f instanceof File) ?? [];
   if (!files.length) return NextResponse.json({ error: "فایلی ارسال نشده است." }, { status: 400 });
   if (files.length > ATTACHMENT_RULES.maxFiles)
@@ -46,7 +52,7 @@ export async function POST(req: NextRequest) {
         { error: `محتوای فایل «${f.name}» با نوع آن همخوانی ندارد.` },
         { status: 415 },
       );
-    const key = makeKey("custom-orders", f.name);
+    const key = makeKey(purpose === "ticket" ? "tickets" : "custom-orders", f.name);
     await storage.put(key, buf, f.type);
     const media = await db.media.create({
       data: {
