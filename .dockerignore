@@ -2,7 +2,11 @@ node_modules
 .next
 .git
 .env
+.env.*
+!.env.example
 storage
 backups
 tests
 docs
+docker/certs
+*.tsbuildinfo

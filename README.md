@@ -40,6 +40,7 @@ npm run dev
 | `npm run build` | ساخت نسخه‌ی production |
 | `npm run lint` / `npm run typecheck` | بررسی کد |
 | `npm test` | تست‌های واحد (Vitest) |
+| `npm run test:e2e` | تست‌های End-to-End (Playwright) |
 | `npm run db:seed` | ورود داده‌های اولیه (قابل اجرای مکرر) |
 | `npm run db:studio` | مشاهده‌ی دیتابیس |
 
@@ -64,12 +65,31 @@ npm run dev
 
 ```bash
 cp .env.example .env   # و مقادیر production را تنظیم کنید
-docker compose --profile full up -d --build
-# فقط بار اول — Seed از روی سرور (پورت دیتابیس روی 127.0.0.1 باز است):
-DATABASE_URL=postgresql://avin:avin@localhost:5432/avinapps npm run db:seed
+docker compose --profile full build
+docker compose up -d db && docker compose --profile setup run --rm setup   # migrate + seed (بار اول)
+docker compose --profile full up -d
 ```
 
-راهنمای کامل استقرار روی سرور ایرانی (SSL، پشتیبان‌گیری، به‌روزرسانی) در فاز ۷ تکمیل می‌شود.
+راهنمای کامل (SSL، پشتیبان‌گیری، به‌روزرسانی، ذخیره‌سازی آروان و عیب‌یابی): [`docs/DEPLOY.md`](docs/DEPLOY.md)
+
+## بخش‌های اصلی
+
+| بخش | مسیر |
+|---|---|
+| سایت عمومی و ۲۶ لندینگ محصول | `/`، `/products`، `/{slug}` مثل `/avingold` |
+| قیمت‌ها، نرم‌افزار اختصاصی (ویزارد ۶ مرحله‌ای)، طراحی سایت | `/pricing`، `/custom-software`، `/website-design` |
+| وبلاگ | `/blog` |
+| پنل مشتری (ورود با پیامک) | `/dashboard` |
+| پنل مدیریت (۲۳ ماژول، Ctrl+K برای جست‌وجو) | `/admin` — ورود: `/admin-login` |
+| API لایسنس نرم‌افزارهای دسکتاپ/موبایل | `POST /api/license/verify`، `POST /api/license/deactivate`، `GET /api/license/public-key` |
+
+## امنیت
+
+- رمز عبور مدیران با Argon2id، ورود دومرحله‌ای اختیاری (TOTP)، محدودیت نرخ ورود و OTP
+- RBAC با مجوزهای جزئی برای هر ماژول و لاگ کامل فعالیت مدیران
+- پاک‌سازی HTML ویرایشگرها، اعتبارسنجی همه‌ی ورودی‌ها با Zod، هدرهای CSP/HSTS
+- کلیدهای درگاه و پیامک رمزنگاری‌شده (AES-256-GCM) در دیتابیس
+- پاسخ API لایسنس با امضای Ed25519 و شناسه‌ی سخت‌افزاری hash‌شده
 
 ## ساختار سیستم تم صنف‌ها
 
