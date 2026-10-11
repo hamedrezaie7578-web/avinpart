@@ -14,7 +14,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed && node -e \"require('fs').rmSync('.next/cache/fetch-cache',{recursive:true,force:true})\"",
     "db:studio": "prisma studio",
-    "license:keys": "tsx scripts/generate-license-keys.ts"
+    "license:keys": "tsx scripts/generate-license-keys.ts",
+    "test:e2e": "playwright test"
   },
   "prisma": {
     "seed": "tsx prisma/seed/index.ts"

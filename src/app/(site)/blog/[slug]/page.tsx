@@ -11,11 +11,23 @@ import { PostCard } from "@/components/blog/post-card";
 import { Toc } from "@/components/blog/toc";
 import { ViewBeacon } from "@/components/blog/view-beacon";
 import { extractToc } from "@/lib/blog";
+import { db } from "@/lib/db";
 import { formatDate, toFaDigits } from "@/lib/format";
 import { absoluteUrl, SITE_NAME, SITE_NAME_FA } from "@/lib/site";
 import { getPost, getRelatedPosts, hydratePost } from "@/server/queries/blog";
 
 export const revalidate = 600;
+export const dynamicParams = true;
+
+/** مقالات منتشرشده در build ساخته می‌شوند (متادیتا داخل head)؛ مقالات جدید با ISR */
+export async function generateStaticParams() {
+  try {
+    const posts = await db.post.findMany({ where: { status: "PUBLISHED", publishAt: { lte: new Date() } }, select: { slug: true } });
+    return posts.map((p) => ({ slug: p.slug }));
+  } catch {
+    return [];
+  }
+}
 
 type P = { params: Promise<{ slug: string }> };
 
